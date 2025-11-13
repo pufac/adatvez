@@ -104,7 +104,8 @@ adnánk tovább minimális formázással az adatbázisnak.<br>
 Atomicitás: Szerver oldalon nagyobb számolásokat lehet egy tranzakcióba kezelni,
 így elkerülhetjük a versenyhelyzeteket. (pl egy tárolt eljárásba kezelünk valamit)
 
- ![kep](./img/pf6.png)
 # 6.
+ ![kep](./img/pf6.png)
+
 
 H, H, I, I, I
