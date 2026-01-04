@@ -282,3 +282,59 @@ Ebben a laborban megtanultad:
 4.  Hogyan használd az **Entity Framework Core**-t adatok olvasására és írására.
 5.  Miért és hogyan használunk **DTO**-kat az adatbázis entitások helyett.
 6.  Hogyan lehet **aszinkronná** tenni a kódot a jobb skálázhatóság érdekében.
+
+# dal
+
+A **DAL** a **Data Access Layer** rövidítése, ami magyarul **Adatelérési Réteg**-et jelent.
+
+A kódban (pl. `Dal.Product`) ez egy **névteret (namespace)** jelöl. Képzeld el úgy, mint egy mappát a projekten belül, ahová azokat a fájlokat és osztályokat gyűjtötték, amelyeknek egyetlen feladata van: **a kapcsolat az adatbázissal.**
+
+Íme a részletes magyarázat, hogy mit keresnek ott ezek a "cuccok":
+
+### 1. Mi van a DAL-ban?
+Ebben a rétegben (és a `Dal` névtérben) találhatók:
+*   **Entitások (Entities):** Ezek azok a C# osztályok, amik **egy-az-egyben leképezik az adatbázis tábláit**.
+    *   Például: `Dal.Product` = `Products` tábla az SQL szerveren.
+    *   Ha az adatbázisban van egy `Price` oszlop, akkor a `Dal.Product` osztályban is van egy `Price` property.
+*   **DbContext:** (Pl. `DataDrivenDbContext` a laborban). Ez a főnök. Ő kezeli a kapcsolatot az adatbázissal, rajta keresztül kérünk le vagy mentünk el entitásokat.
+
+### 2. Miért látsz olyat, hogy `Dal.Product` és `Dtos.Product`?
+Ez a labor egyik legfontosabb tanulsága. A kódban kétféle `Product` osztály van, és fontos, hogy ne keverd őket:
+
+1.  **`Dal.Product` (Az Adatbázis tükörképe):**
+    *   Ez a **belső** használatra való.
+    *   Tele van technikai dolgokkal (pl. `@Key`, `@ForeignKey` annotációk az Entity Frameworknek).
+    *   Benne lehetnek olyan adatok is, amiket nem akarunk kiadni (pl. `CreatedDate`, `IsDeleted`, vagy más táblákra mutató körkörös hivatkozások).
+
+2.  **`Dtos.Product` (Data Transfer Object - Az API válasza):**
+    *   Ez a **külső** világ (a kliens, a böngésző) számára készült.
+    *   Ez egy "buta" osztály, csak azokat az adatokat tartalmazza, amit a felhasználónak látnia kell.
+    *   Nincs benne adatbázis-logika.
+
+### 3. Hogyan működik ez a gyakorlatban? (Példa a laborból)
+
+Amikor a `ProductController`-ben lekérsz egy terméket, ez történik:
+
+```csharp
+// 1. LÉPÉS: DAL (Adatelérési réteg) használata
+// Itt a "Dal.Product" típust kapod vissza az adatbázisból.
+// Ez az objektum "hozzá van kötve" az adatbázishoz.
+var dbEntity = _dbContext.Product.Find(id); 
+
+// 2. LÉPÉS: MAPPING (Átalakítás)
+// Átrakjuk az adatokat a belső (Dal) objektumból a külső (Dto) objektumba.
+var publicDto = new Dtos.Product
+{
+    Id = dbEntity.Id,       // Átmásoljuk az ID-t
+    Name = dbEntity.Name,   // Átmásoljuk a nevet
+    Price = dbEntity.Price  // Átmásoljuk az árat
+    // De pl. a dbEntity.SecretCode mezőt NEM másoljuk át!
+};
+
+// 3. LÉPÉS: Válasz küldése
+// A külvilág csak a DTO-t látja.
+return Ok(publicDto);
+```
+
+**Összefoglalva:**
+Amikor a `Dal.` előtagot látod a kódban, az azt jelenti: **"Ez az objektum közvetlenül az adatbázis tábláját reprezentálja, vigyázz vele!"**
